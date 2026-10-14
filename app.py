@@ -11,45 +11,56 @@ st.set_page_config(
 )
 
 st.title("🌱 منظومة الفحص الصحي الذكي لدرنات البطاطس")
-st.write("مشروع بحثي وتطبيقي مشترك بين **جامعة حائل** و**شركة نادك (NADEC)** للكشف عن اللفحة الفطرية وحساب شدة الإصابة آلياً.")
+st.write(" مشروع بحثي وتطبيقي مشترك بين **جامعة حائل** و**شركة نادك (NADEC)** منظومة ذكية قائمة على الذكاء الاصطناعي للكشف عن اللفحة الفطرية وتقدير شدة الإصابة آلياً لدعم القرار الزراعي.")
 
-# خانة رفع الصورة
-uploaded_file = st.file_uploader("ارفع صورة ورقة البطاطس للفحص:", type=["jpg", "jpeg", "png"])
+# خانة رفع الصور (تم تفعيل رفع أكثر من صورة)
+uploaded_files = st.file_uploader(
+    "ارفع صور أوراق البطاطس للفحص (يمكنك اختيار عدة صور معاً):", 
+    type=["jpg", "jpeg", "png"],
+    accept_multiple_files=True
+)
 
-if uploaded_file is not None:
-    # قراءة الصورة وعرضها
-    image = Image.open(uploaded_file)
-    img_array = np.array(image)
-    
-    st.image(image, caption="الصورة المدخلة", use_container_width=True)
-    
-    with st.spinner("جاري تحليل الصورة عبر نموذج الذكاء الاصطناعي..."):
-        # 1. تحميل النموذج الم درب
+if uploaded_files:
+    # تحميل النموذج مرة واحدة خارج التكرار لتسريع الأداء
+    with st.spinner("جاري تحميل النموذج..."):
         model = YOLO("best.pt")
+    
+    st.write(f"📊 إجمالي الصور المرفوعة: **{len(uploaded_files)}**")
+    st.divider()
+
+    # معالجة كل صورة على حدة
+    for idx, uploaded_file in enumerate(uploaded_files, start=1):
+        st.markdown(f"### 🍃 فحص الصورة رقم ({idx}): `{uploaded_file.name}`")
         
-        # 2. الكشف وتحديد الصناديق
+        # قراءة الصورة
+        image = Image.open(uploaded_file)
+        img_array = np.array(image)
+        
+        # تقسيم العرض إلى عمودين (الصورة الأصلية vs صورة الكشف)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.image(image, caption="الصورة الأصلية", use_container_width=True)
+            
+        # الكشف وتحديد الصناديق عبر YOLO
         results = model.predict(source=img_array, conf=0.25)
         res = results[0]
         
-        # رسم الصناديق المكتشفة على الصورة
         res_bgr = res.plot()
         res_rgb = cv2.cvtColor(res_bgr, cv2.COLOR_BGR2RGB)
         
-        # استخراج الفئات المتوقعة
+        with col2:
+            st.image(res_rgb, caption="تحديد مناطق الإصابة (YOLOv8)", use_container_width=True)
+            
+        # استخراج الفئات
         labels = [model.names[int(b.cls[0])] for b in res.boxes]
         is_infected = any("infect" in l.lower() for l in labels)
         is_healthy = any("health" in l.lower() for l in labels)
         
-        st.subheader("نتائج التحليل:")
-        st.image(res_rgb, caption="تحديد مناطق الإصابة (YOLOv8)", use_container_width=True)
-        
-        # 3. حساب شدة الإصابة وتحديد قرار التدخل
+        # تقييم النتيجة وتحديد الإجراء الميداني
         if is_infected:
-            # التحويل لفضاء HSV لعزل البقع الداكنة
             img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
             hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
             
-            # قناع مساحة الورقة وقناع مساحة البقع الفطرية
             mask_leaf = cv2.inRange(hsv, np.array([10, 30, 20]), np.array([90, 255, 255]))
             mask_blight = cv2.inRange(hsv, np.array([10, 40, 20]), np.array([30, 255, 180]))
             
@@ -58,7 +69,6 @@ if uploaded_file is not None:
             
             severity_pct = (blight_area / leaf_area * 100) if leaf_area > 0 else 0.0
             
-            # بروتوكول التدخل الميداني لنادك
             if severity_pct < 15:
                 tier = "خفيف - Tier 1 (< 15%)"
                 action = "إزالة الورقة يدوياً (Pinch-off) دون استخدام أي مبيدات كيميائية."
@@ -69,13 +79,15 @@ if uploaded_file is not None:
                 tier = "شديد - Tier 3 (> 35%)"
                 action = "حجر وعزل فوري للصينية لمنع انتشار الأبواغ عبر مراوح وسادات التبريد."
             
-            st.error("⚠️ الحالة: مصابة باللفحة الفطرية (Infection)")
+            st.error("⚠️ النتيجة: مصابة باللفحة الفطرية (Infection)")
             st.metric(label="نسبة شدة المرض (Disease Severity)", value=f"{severity_pct:.2f}%")
-            st.info(f"**مستوى التدخل المقترح:** {tier}")
-            st.warning(f"**الإجراء الميداني الموصى به:** {action}")
+            st.info(f"**مستوى التدخل:** {tier}")
+            st.warning(f"**الإجراء الموصى به:** {action}")
             
         elif is_healthy:
-            st.success("✅ الحالة: ورقة سليمة تماماً (Healthy)")
-            st.write("الورقة خالية من بقع اللفحة؛ لا يلزم أي تدخل كيميائي أو ميكانيكي.")
+            st.success("✅ النتيجة: ورقة سليمة تماماً (Healthy)")
+            st.write("الورقة خالية من أعراض المرض؛ لا يلزم أي تدخل.")
         else:
-            st.warning("لم يتم التعرف على ورقة بوضوح؛ يرجى تجربة التقاط صورة أقرب للورقة وبإضاءة جيدة.")
+            st.warning("لم يتم التعرف على ورقة بوضوح؛ تأكدي من التقاط صورة أقرب وبإضاءة مناسبة.")
+            
+        st.divider()
