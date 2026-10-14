@@ -6,11 +6,8 @@
 [![Partner](https://img.shields.io/badge/Industrial%20Partner-NADEC-darkblue.svg)](https://www.nadec.com.sa/)
 
 > **Joint Research & Applied Innovation Initiative**  
-> **Institution:** University of Hail | College of Computer Science and Engineering  
-> **Program:** Executive Master of Artificial Intelligence (CSAI-511)  
-> **Researcher:** Nada Al-Hilali  
-> **Academic Supervisor:** Dr. Meshari Alazmi  
-> **Industrial Partner:** National Agricultural Development Company (NADEC) — Hail Group
+> **Program:** Executive Master of Artificial Intelligence  
+> **Researcher:** Nada Al-Helali  
 
 ---
 
