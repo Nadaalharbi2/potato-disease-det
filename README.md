@@ -2,8 +2,6 @@
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![YOLOv8](https://img.shields.io/badge/Ultralytics-YOLOv8n-green.svg)](https://github.com/ultralytics/ultralytics)
-[![Framework](https://img.shields.io/badge/Academic%20Project-CSAI--511-orange.svg)]()
-[![Partner](https://img.shields.io/badge/Industrial%20Partner-NADEC-darkblue.svg)](https://www.nadec.com.sa/)
 
 > **Joint Research & Applied Innovation Initiative**  
 > **Program:** Executive Master of Artificial Intelligence  
